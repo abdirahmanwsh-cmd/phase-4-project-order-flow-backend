@@ -22,6 +22,8 @@ def create_app():
 
     # Blueprints
     from app.routes.auth_routes import auth_bp
+    from app.routes.menu_routes import menu_bp
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
-
+    app.register_blueprint(menu_bp)
+    
     return app
