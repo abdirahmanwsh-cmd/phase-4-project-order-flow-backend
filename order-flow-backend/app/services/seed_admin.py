@@ -1,7 +1,6 @@
 from app import db
 from app.models.user import User
 from app.models.role import Role
-from werkzeug.security import generate_password_hash
 
 def seed_admin():
     admin_role = Role.query.filter_by(name="admin").first()
@@ -14,9 +13,13 @@ def seed_admin():
     if not admin_user:
         admin_user = User(
             username="admin",
-            password=generate_password_hash("admin123"),
-            role_id=admin_role.id
+            email="admin@example.com"
         )
+        admin_user.set_password("admin123")
+
+        admin_user.roles.append(admin_role)
+
         db.session.add(admin_user)
         db.session.commit()
+
     print("Admin seeding complete")
