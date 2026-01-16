@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from app import db
 from app.models.cart import Cart
+from app.models.menu_item import MenuItem
 
 cart_bp = Blueprint('cart', __name__)
 
@@ -23,10 +24,26 @@ def add_to_cart():
         if not data or not data.get('menu_item_id'):
             return jsonify({'error': 'menu_item_id required'}), 400
         
+        # Validate menu item exists and is available
+        menu_item = MenuItem.query.filter_by(
+            id=data['menu_item_id'],
+            is_available=True
+        ).first()
+        if not menu_item:
+            return jsonify({'error': 'Item not found or unavailable'}), 404
+
+        #REQUIRED: Handle quantity safely (ensure >= 1)
+        quantity = data.get('quantity', 1)
+        if not isinstance(quantity, int) or quantity < 1:
+            return jsonify({'error': 'Quantity must be a positive integer'}), 400
+
+        #Create cart item with snapshot fields (required by updated Cart model)
         cart_item = Cart(
-            user_id=1,
-            menu_item_id=data['menu_item_id'],
-            quantity=data.get('quantity', 1)
+            user_id=1,  #still hardcoded; replace later with auth
+            menu_item_id=menu_item.id,
+            quantity=quantity,
+            menu_item_name=menu_item.name,
+            menu_item_price=float(menu_item.price)
         )
         db.session.add(cart_item)
         db.session.commit()

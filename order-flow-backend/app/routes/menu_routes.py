@@ -5,7 +5,7 @@ from app import db
 
 menu_bp = Blueprint('menu', __name__)
 
-#Admin-only: Create a new menu item
+# Admin-only: Create a new menu item
 @menu_bp.route('/admin/menu', methods=['POST'])
 @jwt_required()
 def create_menu_item():
@@ -31,14 +31,14 @@ def create_menu_item():
     return jsonify(new_item.to_dict()), 201
 
 
-#Public: Get all available menu items
+# Public: Get all available menu items
 @menu_bp.route('/menu', methods=['GET'])
 def get_public_menu():
     items = MenuItem.query.filter_by(is_available=True).all()
     return jsonify([item.to_dict() for item in items]), 200
 
 
-#Admin-only: Get all menu items (including unavailable)
+# Admin-only: Get all menu items (including unavailable)
 @menu_bp.route('/admin/menu', methods=['GET'])
 @jwt_required()
 def get_all_menu_items():
@@ -46,7 +46,7 @@ def get_all_menu_items():
     return jsonify([item.to_dict() for item in items]), 200
 
 
-#Admin-only: Update a menu item
+# Admin-only: Update a menu item
 @menu_bp.route('/admin/menu/<int:item_id>', methods=['PUT'])
 @jwt_required()
 def update_menu_item(item_id):
@@ -63,7 +63,7 @@ def update_menu_item(item_id):
     return jsonify(item.to_dict()), 200
 
 
-#Admin-only: Delete a menu item
+# Admin-only: Delete a menu item
 @menu_bp.route('/admin/menu/<int:item_id>', methods=['DELETE'])
 @jwt_required()
 def delete_menu_item(item_id):
