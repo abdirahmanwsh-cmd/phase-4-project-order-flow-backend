@@ -1,56 +1,63 @@
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required, get_jwt_identity
 from app import db
 from app.models.order import Order
-from app.models.user import User
-from app.utils.order_status import OrderStatus, can_transition, ORDER_TRANSITIONS
+from app.models.order_item import OrderItem
 
-order_bp = Blueprint('order', __name__)
+order_bp = Blueprint('orders', __name__)
 
-#Customer: Get their own orders
-@order_bp.route('/orders', methods=['GET'])
-@jwt_required()
-def get_user_orders():
-    current_user_id = get_jwt_identity()
-    orders = Order.query.filter_by(user_id=current_user_id).all()
-    return jsonify([order.to_dict() for order in orders]), 200
-
-
-#Admin: Get all orders
-@order_bp.route('/admin/orders', methods=['GET'])
-@jwt_required()
-def get_all_orders():
-    
-    orders = Order.query.all()
-    return jsonify([order.to_dict() for order in orders]), 200
-
-
-#Admin: Update order status
-@order_bp.route('/admin/orders/<int:order_id>/status', methods=['PATCH'])
-@jwt_required()
-def update_order_status(order_id):
-    
-    order = Order.query.get_or_404(order_id)
-    data = request.get_json()
-
-    if 'status' not in data:
-        return jsonify({"error": "Missing 'status' field"}), 400
-
-    new_status_str = data['status']
+@order_bp.route('/orders', methods=['POST'])
+def create_order():
     try:
-        new_status = OrderStatus(new_status_str)
-    except ValueError:
-        return jsonify({"error": f"Invalid status. Allowed: {[s.value for s in OrderStatus]}"}), 400
+        data = request.get_json()
+        if not data or not all(k in data for k in ['customer_name', 'phone', 'email', 'address', 'city', 'total', 'items']):
+            return jsonify({'error': 'Missing fields'}), 400
+        
+        new_order = Order(
+            customer_name=data['customer_name'],
+            phone=data['phone'],
+            email=data['email'],
+            address=data['address'],
+            city=data['city'],
+            total=data['total'],
+            status='pending'
+        )
+        db.session.add(new_order)
+        db.session.flush()
+        
+        for item in data['items']:
+            order_item = OrderItem(
+                order_id=new_order.id,
+                menu_item_id=item['menu_item_id'],
+                quantity=item['quantity'],
+                price=item['price']
+            )
+            db.session.add(order_item)
+        
+        db.session.commit()
+        return jsonify({'order_id': new_order.id, 'status': new_order.status, 'total': new_order.total, 'order': new_order.to_dict()}), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
 
-    current_status = OrderStatus(order.status)
+@order_bp.route('/orders/<int:order_id>', methods=['GET'])
+def get_order(order_id):
+    try:
+        order = Order.query.get(order_id)
+        if not order:
+            return jsonify({'error': 'Order not found'}), 404
+        
+        order_data = {'id': order.id, 'customer_name': order.customer_name, 'items': []}
+        for item in order.order_items:
+            order_data['items'].append({'name': item.menu_item.name if item.menu_item else 'Unknown', 'quantity': item.quantity, 'price': item.price})
+        return jsonify(order_data), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
-    if not can_transition(current_status, new_status):
-        return jsonify({
-            "error": f"Invalid transition from '{current_status.value}' to '{new_status.value}'",
-            "allowed_transitions": [s.value for s in ORDER_TRANSITIONS[current_status]]
-        }), 400
-
-    order.status = new_status.value
-    db.session.commit()
-
-    return jsonify(order.to_dict()), 200
+@order_bp.route('/orders', methods=['GET'])
+def get_orders():
+    try:
+        orders = Order.query.order_by(Order.created_at.desc()).all()
+        orders_list = [{'id': o.id, 'customer_name': o.customer_name, 'total': o.total, 'status': o.status, 'created_at': o.created_at.isoformat() if o.created_at else None} for o in orders]
+        return jsonify({'orders': orders_list}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
