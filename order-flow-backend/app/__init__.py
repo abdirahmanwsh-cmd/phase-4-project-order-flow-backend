@@ -34,10 +34,14 @@ def create_app():
     from app.routes.auth_routes import auth_bp
     from app.routes.cart_routes import cart_bp
     from app.routes.order_routes import order_bp
+    from app.routes.payment_routes import payment_bp
+    from app.routes.menu_routes import menu_bp
     
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(cart_bp, url_prefix="/api")
     app.register_blueprint(order_bp, url_prefix="/api")
+    app.register_blueprint(payment_bp, url_prefix="/api")
+    app.register_blueprint(menu_bp, url_prefix="/api")
 
     with app.app_context():
         db.create_all()
