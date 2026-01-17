@@ -36,12 +36,21 @@ def initiate_mpesa_payment():
             transaction_desc=f"Payment for Order {order.id}"
         )
         
+        print(f"M-Pesa Response: {response}")  # Debug logging
+        
+        # Return the full response with CheckoutRequestID
         return jsonify({
             'message': 'STK push sent',
+            'CheckoutRequestID': response.get('CheckoutRequestID'),
+            'MerchantRequestID': response.get('MerchantRequestID'),
+            'ResponseCode': response.get('ResponseCode'),
+            'ResponseDescription': response.get('ResponseDescription'),
+            'CustomerMessage': response.get('CustomerMessage'),
             'mpesa_response': response
         }), 200
         
     except Exception as e:
+        print(f"M-Pesa Error: {str(e)}")  # Debug logging
         return jsonify({'error': str(e)}), 500
 
 @payment_bp.route('/payments/status/<checkout_request_id>', methods=['GET'])

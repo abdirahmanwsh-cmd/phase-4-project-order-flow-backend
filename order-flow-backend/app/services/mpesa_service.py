@@ -5,11 +5,11 @@ import os
 
 class MPesaService:
     def __init__(self):
-        # Sandbox credentials
-        self.consumer_key = "tPVEDaqoGX9ABJfn2D0sOASXo4UG2y0dSAC76RRpT7KSvPBo"
-        self.consumer_secret = "wUbZ0R4CQmjrUAj2SXWAIGKR2M6eRex4q2Wqwz0TkGtXoilDP3WiGEiIRHxwixKK"
-        self.business_shortcode = "174379"
-        self.passkey = "bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919"
+        # Get credentials from environment variables or use defaults
+        self.consumer_key = os.getenv('MPESA_CONSUMER_KEY', 'your_consumer_key_here')
+        self.consumer_secret = os.getenv('MPESA_CONSUMER_SECRET', 'your_consumer_secret_here')
+        self.business_shortcode = os.getenv('MPESA_SHORTCODE', '174379')
+        self.passkey = os.getenv('MPESA_PASSKEY', 'bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919')
         
         # Sandbox URLs
         self.auth_url = "https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials"
