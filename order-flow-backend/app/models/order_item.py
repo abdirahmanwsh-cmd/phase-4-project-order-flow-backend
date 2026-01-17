@@ -21,7 +21,7 @@ class OrderItem(db.Model):
             'subtotal': self.price * self.quantity
         }
         
-        # Include menu item details if relationship exists
+        # Include menu item details if relationship 
         if self.menu_item:
             item_dict['menu_item'] = {
                 'id': self.menu_item.id,
