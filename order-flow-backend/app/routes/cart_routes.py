@@ -7,7 +7,7 @@ cart_bp = Blueprint('cart', __name__)
 
 @cart_bp.route('/', methods=['GET'])
 def home():
-    return jsonify({'message': 'Order Flow API - ', 'endpoints': {'/api/cart': 'Cart API', '/api/orders': 'Orders API'}}), 200
+    return jsonify({'message': 'Order Flow API', 'endpoints': {'/api/menu': 'Menu API', '/api/cart': 'Cart API', '/api/orders': 'Orders API', '/api/payments/mpesa/initiate': 'M-Pesa Payment'}}), 200
 
 @cart_bp.route('/cart', methods=['GET'])
 def get_cart():

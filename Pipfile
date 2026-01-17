@@ -11,6 +11,7 @@ python-dotenv = "*"
 werkzeug = "*"
 flask-bcrypt = "*"
 flask-cors = "*"
+requests = "*"
 
 [dev-packages]
 
