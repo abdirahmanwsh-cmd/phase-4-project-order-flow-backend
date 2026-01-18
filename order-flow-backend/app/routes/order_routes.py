@@ -68,3 +68,24 @@ def get_orders():
         return jsonify({'orders': orders_list}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    
+@order_bp.route('/orders/<int:order_id>/status', methods=['PATCH'])
+def update_order_status(order_id):
+    try:
+        data = request.get_json()
+        new_status = data.get("status")
+
+        if not new_status:
+            return jsonify({"error": "Status is required"}), 400
+
+        order = Order.query.get(order_id)
+        if not order:
+            return jsonify({"error": "Order not found"}), 404
+
+        order.status = new_status
+        db.session.commit()
+
+        return jsonify({"message": "Status updated", "order": order.to_dict()}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
