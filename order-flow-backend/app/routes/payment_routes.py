@@ -56,22 +56,55 @@ def initiate_mpesa_payment():
 @payment_bp.route('/payments/status/<checkout_request_id>', methods=['GET'])
 def check_payment_status(checkout_request_id):
     """
-    Check M-Pesa payment status
+    Query M-Pesa payment status
     
-    For sandbox: Returns mock status
-    For production: Query Daraja API
+    Returns the status of a payment transaction
     """
     try:
-        # In sandbox mode, we can't query transaction status reliably
-        # Return a mock response for testing
+        # Query M-Pesa for transaction status
+        result = mpesa.query_stk_status(checkout_request_id)
+        
+        print(f"M-Pesa Status Query Result: {result}")  # Debug logging
+        
+        # Parse the response
+        result_code = result.get('ResultCode')
+        result_desc = result.get('ResultDesc', '')
+        
+        # Determine status
+        if result_code == '0':
+            status = 'completed'
+            message = 'Payment successful'
+        elif result_code == '1032':
+            status = 'cancelled'
+            message = 'Payment cancelled by user'
+        elif result_code == '1':
+            status = 'failed'
+            message = 'Payment failed'
+        elif result_code == '1037':
+            status = 'timeout'
+            message = 'Payment timeout'
+        else:
+            status = 'pending'
+            message = result_desc or 'Payment processing'
+        
         return jsonify({
             'checkout_request_id': checkout_request_id,
-            'status': 'pending',
-            'message': 'Payment status check - use callback for real status'
+            'status': status,
+            'result_code': result_code,
+            'message': message,
+            'mpesa_response': result
         }), 200
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        print(f"Status Query Error: {str(e)}")  # Debug logging
+        # If query fails, assume still pending
+        return jsonify({
+            'checkout_request_id': checkout_request_id,
+            'status': 'pending',
+            'message': 'Unable to verify status, payment may still be processing',
+            'error': str(e)
+        }), 200
+
 
 @payment_bp.route('/mpesa/callback', methods=['POST'])
 def mpesa_callback():
