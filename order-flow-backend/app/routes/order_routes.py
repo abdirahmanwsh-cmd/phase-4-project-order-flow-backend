@@ -9,16 +9,23 @@ order_bp = Blueprint('orders', __name__)
 def create_order():
     try:
         data = request.get_json()
-        if not data or not all(k in data for k in ['customer_name', 'phone', 'email', 'address', 'city', 'total', 'items']):
-            return jsonify({'error': 'Missing fields'}), 400
+        print(f"Received order data: {data}")  # Debug logging
+        
+        # Support both frontend field names and backend field names
+        address = data.get('address') or data.get('delivery_address', '')
+        city = data.get('city', 'N/A')  # Default city if not provided
+        total = data.get('total') or data.get('total_amount')
+        
+        if not data or not all([data.get('customer_name'), data.get('phone'), data.get('email'), address, total, data.get('items')]):
+            return jsonify({'error': 'Missing required fields'}), 400
         
         new_order = Order(
             customer_name=data['customer_name'],
             phone=data['phone'],
             email=data['email'],
-            address=data['address'],
-            city=data['city'],
-            total=data['total'],
+            address=address,
+            city=city,
+            total=total,
             status='pending'
         )
         db.session.add(new_order)
