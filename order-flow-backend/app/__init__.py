@@ -25,10 +25,9 @@ def create_app():
     db.init_app(app)
     bcrypt.init_app(app)
     jwt.init_app(app)
-    bcrypt.init_app(app)
-    CORS(app)
-
-    CORS(app, resources={r"/api/*": {"origins": "http://localhost:5173"}})
+    
+    # Allow CORS for both localhost and production frontend
+    CORS(app, resources={r"/api/*": {"origins": ["http://localhost:5173", "https://*.onrender.com"]}})
     # Blueprints
     from app.routes.auth_routes import auth_bp
     from app.routes.cart_routes import cart_bp
