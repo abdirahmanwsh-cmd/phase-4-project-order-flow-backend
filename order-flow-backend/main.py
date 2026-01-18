@@ -15,4 +15,9 @@ if __name__ == "__main__":
         db.create_all()   # Create all tables
         seed_admin()      # Seed admin user
         seed_menu()       # Seed menu items
-    app.run(debug=True, port=5555)
+    
+    # Get port from environment variable for production (Render uses PORT env var)
+    port = int(os.environ.get("PORT", 5555))
+    debug = os.environ.get("FLASK_ENV", "development") == "development"
+    
+    app.run(host="0.0.0.0", debug=debug, port=port)
