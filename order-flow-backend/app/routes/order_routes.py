@@ -8,6 +8,7 @@ order_bp = Blueprint('orders', __name__)
 @order_bp.route('/orders', methods=['POST'])
 def create_order():
     try:
+        data = request.get_json()
         print(f"Received order data: {data}")  # Debug logging
         
         # Support both frontend field names and backend field names
@@ -67,8 +68,6 @@ def get_orders():
         return jsonify({'orders': orders_list}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-<<<<<<< HEAD
-=======
     
 @order_bp.route('/orders/<int:order_id>/status', methods=['PATCH'])
 def update_order_status(order_id):
@@ -90,4 +89,3 @@ def update_order_status(order_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
->>>>>>> dev
