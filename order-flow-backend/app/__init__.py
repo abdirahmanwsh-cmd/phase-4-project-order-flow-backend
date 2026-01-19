@@ -26,12 +26,20 @@ def create_app():
     bcrypt.init_app(app)
     jwt.init_app(app)
     
-    # Allow CORS for localhost and production frontends
-    CORS(app, resources={r"/api/*": {"origins": [
-        "http://localhost:5173", 
-        "https://*.onrender.com",
-        "https://order-flow-frontend.web.app"
-    ]}})
+    # Configure CORS for all environments
+    CORS(app, resources={
+        r"/api/*": {
+            "origins": [
+                "http://localhost:5173",                    # local dev (Vite default port)
+                "http://localhost:3000",                    # if using Create React App
+                "https://order-flow-frontend.web.app",      # main Firebase domain
+                "https://order-flow-frontend.firebaseapp.com",  # secondary Firebase domain
+                "https://*.onrender.com"                    # Render deployments (wildcard)
+            ],
+            "supports_credentials": True,                   # important for cookies/auth headers
+            "allow_headers": ["Content-Type", "Authorization"]  # allow JWT header
+        }
+    })
     
     # Blueprints
     from app.routes.auth_routes import auth_bp
