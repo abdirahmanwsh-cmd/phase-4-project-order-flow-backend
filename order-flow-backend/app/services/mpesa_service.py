@@ -79,7 +79,7 @@ class MPesaService:
                 "PartyA": phone_number,
                 "PartyB": self.business_shortcode,
                 "PhoneNumber": phone_number,
-                "CallBackURL": "https://phase-4-project-order-flow-backend.onrender.com/api/payments/mpesa/callback",
+                "CallBackURL": "https://phase-4-project-order-flow-backend.onrender.com/api/mpesa/callback",
                 "AccountReference": account_reference,
                 "TransactionDesc": transaction_desc
             }
