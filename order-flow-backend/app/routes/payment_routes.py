@@ -32,8 +32,8 @@ def initiate_mpesa_payment():
         response = mpesa.stk_push(
             phone_number=data['phone_number'],
             amount=order.total,
-            account_reference=f"Order{order.id}",
-            transaction_desc=f"Payment for Order {order.id}"
+            account_reference=f"ORD{order.id}",
+            transaction_desc=f"Order{order.id}"
         )
         
         print(f"M-Pesa Response: {response}")  # Debug logging
