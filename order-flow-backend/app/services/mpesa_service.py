@@ -49,6 +49,11 @@ class MPesaService:
             transaction_desc: Description of transaction
         """
         try:
+            # Validate and format amount (minimum 1 KES)
+            amount = int(float(amount))
+            if amount < 1:
+                raise ValueError("Amount must be at least 1 KES")
+            
             # Get access token
             access_token = self.get_access_token()
             
@@ -57,12 +62,17 @@ class MPesaService:
             password = self.generate_password(timestamp)
             
             # Format phone number (remove leading 0 or +, ensure 254 prefix)
+            phone_number = str(phone_number).strip()
             if phone_number.startswith('0'):
                 phone_number = '254' + phone_number[1:]
             elif phone_number.startswith('+'):
                 phone_number = phone_number[1:]
             elif not phone_number.startswith('254'):
                 phone_number = '254' + phone_number
+            
+            # Validate phone number (must be 12 digits: 254XXXXXXXXX)
+            if not phone_number.isdigit() or len(phone_number) != 12:
+                raise ValueError(f"Invalid phone number: {phone_number}. Must be 254XXXXXXXXX (12 digits)")
             
             # Prepare request
             headers = {
@@ -75,21 +85,62 @@ class MPesaService:
                 "Password": password,
                 "Timestamp": timestamp,
                 "TransactionType": "CustomerPayBillOnline",
-                "Amount": int(amount),
+                "Amount": amount,
                 "PartyA": phone_number,
                 "PartyB": self.business_shortcode,
                 "PhoneNumber": phone_number,
                 "CallBackURL": "https://phase-4-project-order-flow-backend.onrender.com/api/mpesa/callback",
-                "AccountReference": account_reference,
-                "TransactionDesc": transaction_desc
+                "AccountReference": str(account_reference)[:13],  # Max 13 chars
+                "TransactionDesc": str(transaction_desc)[:13]  # Max 13 chars
             }
             
-            response = requests.post(self.stk_push_url, json=payload, headers=headers)
-            response.raise_for_status()
+            print(f"STK Push Request: {payload}")  # Debug
             
-            return response.json()
+            response = requests.post(self.stk_push_url, json=payload, headers=headers, timeout=30)
             
+            print(f"STK Push Response Status: {response.status_code}")  # Debug
+            print(f"STK Push Response Body: {response.text}")  # Debug
+            
+            if response.status_code != 200:
+                try:
+                    error_data = response.json()
+                    error_msg = error_data.get('errorMessage', error_data.get('errorCode', ''))
+                    request_id = error_data.get('requestId', '')
+                    
+                    # Build detailed error message
+                    details = []
+                    if error_msg:
+                        details.append(f"Error: {error_msg}")
+                    if request_id:
+                        details.append(f"RequestID: {request_id}")
+                    if error_data.get('fault'):
+                        fault = error_data['fault']
+                        details.append(f"Fault: {fault.get('faultstring', fault)}")
+                    
+                    full_error = " | ".join(details) if details else response.text
+                except:
+                    full_error = response.text or "Unknown error"
+                
+                raise Exception(f"M-Pesa API returned {response.status_code}: {full_error}")
+            
+            result = response.json()
+            
+            # Check if M-Pesa accepted the request
+            if result.get('ResponseCode') != '0':
+                raise Exception(f"M-Pesa rejected request: {result.get('ResponseDescription', 'Unknown error')} (Code: {result.get('ResponseCode')})")
+            
+            return result
+            
+        except ValueError as e:
+            # Re-raise validation errors as-is
+            raise
+        except requests.exceptions.Timeout:
+            raise Exception("M-Pesa request timed out. Please try again.")
+        except requests.exceptions.ConnectionError:
+            raise Exception("Failed to connect to M-Pesa. Check internet connection.")
         except Exception as e:
+            if "M-Pesa" in str(e) or "rejected" in str(e) or "timed out" in str(e):
+                raise
             raise Exception(f"STK Push failed: {str(e)}")
 
     def query_stk_status(self, checkout_request_id):

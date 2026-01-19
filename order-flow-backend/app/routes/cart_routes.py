@@ -11,6 +11,32 @@ def home():
 
 @cart_bp.route('/cart', methods=['GET'])
 def get_cart():
+    """
+    Get all cart items
+    ---
+    tags:
+      - Cart
+    responses:
+      200:
+        description: List of cart items
+        schema:
+          properties:
+            cart_items:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  menu_item_id:
+                    type: integer
+                  menu_item_name:
+                    type: string
+                  menu_item_price:
+                    type: number
+                  quantity:
+                    type: integer
+    """
     try:
         cart_items = Cart.query.all()
         return jsonify({'cart_items': [item.to_dict() for item in cart_items]}), 200
@@ -19,6 +45,34 @@ def get_cart():
 
 @cart_bp.route('/cart', methods=['POST'])
 def add_to_cart():
+    """
+    Add item to cart
+    ---
+    tags:
+      - Cart
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - menu_item_id
+          properties:
+            menu_item_id:
+              type: integer
+              example: 1
+            quantity:
+              type: integer
+              example: 2
+    responses:
+      201:
+        description: Item added to cart
+      400:
+        description: Invalid request
+      404:
+        description: Menu item not found
+    """
     try:
         data = request.get_json()
         if not data or not data.get('menu_item_id'):
@@ -54,6 +108,24 @@ def add_to_cart():
 
 @cart_bp.route('/cart/<int:id>', methods=['DELETE'])
 def remove_from_cart(id):
+    """
+    Remove item from cart
+    ---
+    tags:
+      - Cart
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+        description: Cart item ID
+    responses:
+      200:
+        description: Item removed from cart
+      404:
+        description: Cart item not found
+    """
     try:
         cart_item = Cart.query.get(id)
         if not cart_item:

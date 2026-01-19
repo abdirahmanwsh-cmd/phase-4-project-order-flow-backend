@@ -7,6 +7,62 @@ order_bp = Blueprint('orders', __name__)
 
 @order_bp.route('/orders', methods=['POST'])
 def create_order():
+    """
+    Create a new order
+    ---
+    tags:
+      - Orders
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - customer_name
+            - phone
+            - email
+            - address
+            - total
+            - items
+          properties:
+            customer_name:
+              type: string
+              example: John Doe
+            phone:
+              type: string
+              example: 0712345678
+            email:
+              type: string
+              example: john@example.com
+            address:
+              type: string
+              example: 123 Main St
+            city:
+              type: string
+              example: Nairobi
+            total:
+              type: number
+              example: 150.50
+            items:
+              type: array
+              items:
+                type: object
+                properties:
+                  menu_item_id:
+                    type: integer
+                  quantity:
+                    type: integer
+                  price:
+                    type: number
+    responses:
+      201:
+        description: Order created successfully
+      400:
+        description: Missing required fields
+      500:
+        description: Server error
+    """
     try:
         data = request.get_json()
         print(f"Received order data: {data}")  # Debug logging
@@ -48,6 +104,24 @@ def create_order():
 
 @order_bp.route('/orders/<int:order_id>', methods=['GET'])
 def get_order(order_id):
+    """
+    Get order by ID
+    ---
+    tags:
+      - Orders
+    parameters:
+      - in: path
+        name: order_id
+        required: true
+        schema:
+          type: integer
+        description: Order ID
+    responses:
+      200:
+        description: Order details
+      404:
+        description: Order not found
+    """
     try:
         order = Order.query.get(order_id)
         if not order:
@@ -62,6 +136,32 @@ def get_order(order_id):
 
 @order_bp.route('/orders', methods=['GET'])
 def get_orders():
+    """
+    Get all orders
+    ---
+    tags:
+      - Orders
+    responses:
+      200:
+        description: List of all orders
+        schema:
+          properties:
+            orders:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  customer_name:
+                    type: string
+                  total:
+                    type: number
+                  status:
+                    type: string
+                  created_at:
+                    type: string
+    """
     try:
         orders = Order.query.order_by(Order.created_at.desc()).all()
         orders_list = [{'id': o.id, 'customer_name': o.customer_name, 'total': o.total, 'status': o.status, 'created_at': o.created_at.isoformat() if o.created_at else None} for o in orders]
@@ -71,6 +171,38 @@ def get_orders():
     
 @order_bp.route('/orders/<int:order_id>/status', methods=['PATCH'])
 def update_order_status(order_id):
+    """
+    Update order status
+    ---
+    tags:
+      - Orders
+    parameters:
+      - in: path
+        name: order_id
+        required: true
+        schema:
+          type: integer
+        description: Order ID
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - status
+          properties:
+            status:
+              type: string
+              enum: [pending, processing, completed, cancelled]
+              example: completed
+    responses:
+      200:
+        description: Status updated successfully
+      400:
+        description: Status is required
+      404:
+        description: Order not found
+    """
     try:
         data = request.get_json()
         new_status = data.get("status")

@@ -15,6 +15,10 @@ class Order(db.Model):
     
     order_items = db.relationship('OrderItem', backref='order', lazy=True, cascade='all, delete-orphan')
     
+    def get_payment_amount(self):
+        """Get total amount rounded to whole number for M-Pesa (no decimals)"""
+        return max(1, round(self.total))  # Ensure at least 1 KES
+    
     def to_dict(self):
         return {
             'id': self.id,

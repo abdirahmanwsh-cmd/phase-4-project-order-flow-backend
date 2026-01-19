@@ -10,12 +10,45 @@ mpesa = MPesaService()
 def initiate_mpesa_payment():
     """
     Initiate M-Pesa STK Push payment
-    
-    Request body:
-    {
-        "order_id": 1,
-        "phone_number": "0712345678"
-    }
+    ---
+    tags:
+      - Payments
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - order_id
+            - phone_number
+          properties:
+            order_id:
+              type: integer
+              example: 1
+            phone_number:
+              type: string
+              example: 0712345678
+              description: Kenyan phone number (0712345678 or 254712345678)
+    responses:
+      200:
+        description: STK push sent successfully
+        schema:
+          properties:
+            message:
+              type: string
+            CheckoutRequestID:
+              type: string
+            ResponseCode:
+              type: string
+            CustomerMessage:
+              type: string
+      400:
+        description: Invalid request or validation error
+      404:
+        description: Order not found
+      500:
+        description: M-Pesa error
     """
     try:
         data = request.get_json()
@@ -28,10 +61,24 @@ def initiate_mpesa_payment():
         if not order:
             return jsonify({'error': 'Order not found'}), 404
         
+        # Get payment amount (ensures min 1 KES)
+        amount = order.get_payment_amount()
+        
+        # Clean and validate phone number
+        phone = str(data['phone_number']).strip().replace(' ', '').replace('-', '')
+        
+        # Provide helpful feedback for common phone formats
+        if len(phone) < 9:
+            return jsonify({'error': 'Phone number too short. Use format: 0712345678 or 254712345678'}), 400
+        if len(phone) > 13:
+            return jsonify({'error': 'Phone number too long. Use format: 0712345678 or 254712345678'}), 400
+        
+        print(f"Processing payment: Order={order.id}, Amount={amount} KES, Phone={phone}")
+        
         # Initiate STK push
         response = mpesa.stk_push(
-            phone_number=data['phone_number'],
-            amount=order.total,
+            phone_number=phone,
+            amount=amount,
             account_reference=f"ORD{order.id}",
             transaction_desc=f"Order{order.id}"
         )
@@ -40,15 +87,21 @@ def initiate_mpesa_payment():
         
         # Return the full response with CheckoutRequestID
         return jsonify({
-            'message': 'STK push sent',
+            'message': 'STK push sent. Check your phone to complete payment.',
             'CheckoutRequestID': response.get('CheckoutRequestID'),
             'MerchantRequestID': response.get('MerchantRequestID'),
             'ResponseCode': response.get('ResponseCode'),
             'ResponseDescription': response.get('ResponseDescription'),
             'CustomerMessage': response.get('CustomerMessage'),
+            'amount': amount,
+            'phone': phone,
             'mpesa_response': response
         }), 200
         
+    except ValueError as e:
+        # Validation errors (phone number, amount)
+        print(f"Validation Error: {str(e)}")
+        return jsonify({'error': str(e)}), 400
     except Exception as e:
         print(f"M-Pesa Error: {str(e)}")  # Debug logging
         return jsonify({'error': str(e)}), 500
@@ -56,9 +109,31 @@ def initiate_mpesa_payment():
 @payment_bp.route('/payments/status/<checkout_request_id>', methods=['GET'])
 def check_payment_status(checkout_request_id):
     """
-    Query M-Pesa payment status
-    
-    Returns the status of a payment transaction
+    Check M-Pesa payment status
+    ---
+    tags:
+      - Payments
+    parameters:
+      - in: path
+        name: checkout_request_id
+        required: true
+        schema:
+          type: string
+        description: CheckoutRequestID from STK push response
+    responses:
+      200:
+        description: Payment status
+        schema:
+          properties:
+            checkout_request_id:
+              type: string
+            status:
+              type: string
+              enum: [pending, completed, cancelled, failed, timeout]
+            result_code:
+              type: string
+            message:
+              type: string
     """
     try:
         # Query M-Pesa for transaction status
