@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity
+from flasgger import swag_from
 from app import db, bcrypt
 from app.models.user import User
 from app.models.role import Role
@@ -8,10 +9,64 @@ auth_bp = Blueprint("auth", __name__)
 
 @auth_bp.route("/test", methods=["GET"])
 def auth_test():
+    """
+    Test endpoint for auth routes
+    ---
+    tags:
+      - Authentication
+    responses:
+      200:
+        description: Auth routes are working
+        schema:
+          properties:
+            message:
+              type: string
+              example: Auth routes working
+    """
     return jsonify({"message": "Auth routes working"})
 
 @auth_bp.route("/register", methods=["POST"])
 def register():
+    """
+    Register a new user
+    ---
+    tags:
+      - Authentication
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - username
+            - email
+            - password
+          properties:
+            username:
+              type: string
+              example: johndoe
+            email:
+              type: string
+              example: john@example.com
+            password:
+              type: string
+              example: SecurePass123!
+    responses:
+      201:
+        description: User registered successfully
+        schema:
+          properties:
+            msg:
+              type: string
+              example: User registered successfully
+      400:
+        description: Missing required fields
+      409:
+        description: Email or username already exists
+      500:
+        description: Registration failed
+    """
     data = request.get_json()
     
     required_fields = ["username", "email", "password"]
@@ -46,9 +101,56 @@ def register():
         db.session.rollback()
         return jsonify({"msg": "Registration failed", "error": str(e)}), 500
 
-
 @auth_bp.route("/login", methods=["POST"])
 def login():
+    """
+    Login with email and password
+    ---
+    tags:
+      - Authentication
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - email
+            - password
+          properties:
+            email:
+              type: string
+              example: john@example.com
+            password:
+              type: string
+              example: SecurePass123!
+    responses:
+      200:
+        description: Login successful
+        schema:
+          properties:
+            access_token:
+              type: string
+            refresh_token:
+              type: string
+            user:
+              type: object
+              properties:
+                id:
+                  type: integer
+                username:
+                  type: string
+                email:
+                  type: string
+                roles:
+                  type: array
+                  items:
+                    type: string
+      400:
+        description: Missing email or password
+      401:
+        description: Invalid credentials
+    """
     data = request.get_json()
     
     if not data or "email" not in data or "password" not in data:
@@ -76,10 +178,34 @@ def login():
         }
     }), 200
 
-
 @auth_bp.route("/refresh", methods=["POST"])
 @jwt_required(refresh=True)
 def refresh_token():
+    """
+    Refresh access token
+    ---
+    tags:
+      - Authentication
+    security:
+      - Bearer: []
+    parameters:
+      - in: header
+        name: Authorization
+        required: true
+        schema:
+          type: string
+          example: Bearer <refresh_token>
+        description: Refresh token in Bearer format
+    responses:
+      200:
+        description: New access token generated
+        schema:
+          properties:
+            access_token:
+              type: string
+      404:
+        description: User not found
+    """
     current_user_id = get_jwt_identity()
     user = User.query.get(current_user_id)
     

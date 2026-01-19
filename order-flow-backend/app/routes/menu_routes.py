@@ -9,6 +9,46 @@ menu_bp = Blueprint('menu', __name__)
 @menu_bp.route('/admin/menu', methods=['POST'])
 @jwt_required()
 def create_menu_item():
+    """
+    Create a new menu item (Admin only)
+    ---
+    tags:
+      - Menu
+    security:
+      - Bearer: []
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - name
+            - price
+          properties:
+            name:
+              type: string
+              example: Margherita Pizza
+            description:
+              type: string
+              example: Classic pizza with tomato and mozzarella
+            price:
+              type: number
+              example: 12.99
+            is_available:
+              type: boolean
+              example: true
+            image_url:
+              type: string
+              example: https://example.com/pizza.jpg
+    responses:
+      201:
+        description: Menu item created successfully
+      400:
+        description: Missing required fields
+      401:
+        description: Unauthorized
+    """
 
     data = request.get_json()
 
@@ -30,10 +70,35 @@ def create_menu_item():
 
     return jsonify(new_item.to_dict()), 201
 
-
 # Public: Get all available menu items
 @menu_bp.route('/menu', methods=['GET'])
 def get_public_menu():
+    """
+    Get all available menu items (Public)
+    ---
+    tags:
+      - Menu
+    responses:
+      200:
+        description: List of available menu items
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              name:
+                type: string
+              description:
+                type: string
+              price:
+                type: number
+              is_available:
+                type: boolean
+              image_url:
+                type: string
+    """
     items = MenuItem.query.filter_by(is_available=True).all()
     return jsonify([item.to_dict() for item in items]), 200
 
