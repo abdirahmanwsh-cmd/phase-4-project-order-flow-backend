@@ -19,6 +19,9 @@ class MPesaService:
     def get_access_token(self):
         """Get OAuth access token from Daraja API"""
         try:
+            print(f"Consumer Key: {self.consumer_key[:10]}...")
+            print(f"Consumer Secret: {self.consumer_secret[:10]}...")
+            
             credentials = f"{self.consumer_key}:{self.consumer_secret}"
             encoded = base64.b64encode(credentials.encode()).decode()
             
@@ -27,6 +30,9 @@ class MPesaService:
             }
             
             response = requests.get(self.auth_url, headers=headers)
+            print(f"Access Token Response Status: {response.status_code}")
+            print(f"Access Token Response: {response.text}")
+            
             response.raise_for_status()
             
             return response.json()['access_token']
